@@ -1,1050 +1,638 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tareas de Programación</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>📚 Felipe Mamani Choque</title>
 <style>
-  :root {
-    --bg: #0a0a0f;
-    --surface: #12121a;
-    --card: #1a1a26;
-    --border: #2a2a3e;
-    --accent: #00ff88;
-    --accent2: #7c3aed;
-    --accent3: #f59e0b;
-    --text: #e8e8f0;
-    --muted: #6b6b8a;
-    --todo: #3b82f6;
-    --doing: #f59e0b;
-    --done: #00ff88;
-    --danger: #ef4444;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    font-family: 'Syne', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  body::before {
-    content: '';
-    position: fixed;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(ellipse at 20% 20%, rgba(124,58,237,0.06) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 80%, rgba(0,255,136,0.04) 0%, transparent 50%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  /* HEADER */
-  header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(10,10,15,0.85);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border);
-    padding: 0 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 64px;
-  }
-
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 1.1rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-  }
-
-  .logo-dot {
-    width: 10px;
-    height: 10px;
-    background: var(--accent);
-    border-radius: 50%;
-    box-shadow: 0 0 12px var(--accent);
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.6; transform: scale(0.8); }
-  }
-
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .status-indicator {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
-    color: var(--accent);
-    background: rgba(0,255,136,0.08);
-    border: 1px solid rgba(0,255,136,0.2);
-    padding: 4px 10px;
-    border-radius: 4px;
-  }
-
-  /* STATS BAR */
-  .stats-bar {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    gap: 1px;
-    padding: 1.5rem 2rem;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .stat {
-    flex: 1;
-    padding: 1rem 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    position: relative;
-  }
-
-  .stat::after {
-    content: '';
-    position: absolute;
-    right: 0;
-    top: 20%;
-    height: 60%;
-    width: 1px;
-    background: var(--border);
-  }
-
-  .stat:last-child::after { display: none; }
-
-  .stat-num {
-    font-size: 2rem;
-    font-weight: 800;
-    line-height: 1;
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .stat-label {
-    font-size: 0.7rem;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-
-  .stat-num.blue { color: var(--todo); }
-  .stat-num.amber { color: var(--doing); }
-  .stat-num.green { color: var(--done); }
-
-  /* ADD TASK BUTTON */
-  .fab {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    z-index: 200;
-    background: var(--accent);
-    color: #000;
-    border: none;
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
-    font-size: 1.5rem;
-    cursor: pointer;
-    box-shadow: 0 0 30px rgba(0,255,136,0.4);
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .fab:hover {
-    transform: scale(1.1) rotate(45deg);
-    box-shadow: 0 0 50px rgba(0,255,136,0.6);
-  }
-
-  /* KANBAN */
-  .kanban {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-    padding: 2rem;
-    min-height: calc(100vh - 200px);
-    align-items: start;
-  }
-
-  .column {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-  }
-
-  .column-header {
-    padding: 1rem 1.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .column-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 700;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-  }
-
-  .col-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-  }
-
-  .col-dot.blue { background: var(--todo); box-shadow: 0 0 8px var(--todo); }
-  .col-dot.amber { background: var(--doing); box-shadow: 0 0 8px var(--doing); }
-  .col-dot.green { background: var(--done); box-shadow: 0 0 8px var(--done); }
-
-  .col-count {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
-    background: var(--card);
-    border: 1px solid var(--border);
-    padding: 2px 8px;
-    border-radius: 20px;
-    color: var(--muted);
-  }
-
-  .column-body {
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    min-height: 200px;
-  }
-
-  /* TASK CARD */
-  .task-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    animation: slideIn 0.3s ease;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .task-card::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    border-radius: 3px 0 0 3px;
-    transition: width 0.2s;
-  }
-
-  .task-card.priority-alta::before { background: var(--danger); }
-  .task-card.priority-media::before { background: var(--doing); }
-  .task-card.priority-baja::before { background: var(--todo); }
-
-  .task-card:hover {
-    border-color: rgba(0,255,136,0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-  }
-
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .task-title {
-    font-weight: 600;
-    font-size: 0.9rem;
-    margin-bottom: 8px;
-    line-height: 1.4;
-  }
-
-  .task-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    align-items: center;
-  }
-
-  .tag {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.65rem;
-    padding: 2px 7px;
-    border-radius: 4px;
-    background: rgba(124,58,237,0.15);
-    border: 1px solid rgba(124,58,237,0.3);
-    color: #a78bfa;
-  }
-
-  .priority-badge {
-    font-size: 0.65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    padding: 2px 7px;
-    border-radius: 4px;
-  }
-
-  .priority-badge.alta { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
-  .priority-badge.media { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
-  .priority-badge.baja { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
-
-  .task-date {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.65rem;
-    color: var(--muted);
-    margin-left: auto;
-  }
-
-  .task-actions {
-    display: flex;
-    gap: 6px;
-    margin-top: 10px;
-    justify-content: flex-end;
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-
-  .task-card:hover .task-actions { opacity: 1; }
-
-  .btn-icon {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--muted);
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    transition: all 0.15s;
-  }
-
-  .btn-icon:hover { background: var(--border); color: var(--text); }
-  .btn-icon.danger:hover { background: rgba(239,68,68,0.2); color: var(--danger); border-color: rgba(239,68,68,0.4); }
-
-  .task-file {
-    margin-top: 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.65rem;
-    color: var(--accent);
-    text-decoration: none;
-  }
-
-  .task-file:hover { text-decoration: underline; }
-
-  /* MODAL */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(8px);
-    z-index: 300;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-  }
-
-  .modal-overlay.open { display: flex; }
-
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    width: 100%;
-    max-width: 500px;
-    padding: 2rem;
-    animation: modalIn 0.25s ease;
-    box-shadow: 0 40px 80px rgba(0,0,0,0.6);
-  }
-
-  @keyframes modalIn {
-    from { opacity: 0; transform: scale(0.95) translateY(10px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
-  }
-
-  .modal-title {
-    font-size: 1.25rem;
-    font-weight: 800;
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .modal-title span { color: var(--accent); }
-
-  .form-group {
-    margin-bottom: 1rem;
-  }
-
-  label {
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--muted);
-    margin-bottom: 6px;
-  }
-
-  input, textarea, select {
-    width: 100%;
-    background: var(--card);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 10px 14px;
-    border-radius: 10px;
-    font-family: 'Syne', sans-serif;
-    font-size: 0.9rem;
-    transition: border-color 0.2s;
-    outline: none;
-  }
-
-  input:focus, textarea:focus, select:focus {
-    border-color: rgba(0,255,136,0.4);
-    box-shadow: 0 0 0 3px rgba(0,255,136,0.05);
-  }
-
-  textarea { resize: vertical; min-height: 80px; }
-
-  select option { background: var(--card); }
-
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-
-  .file-upload-area {
-    border: 2px dashed var(--border);
-    border-radius: 10px;
-    padding: 1.5rem;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-  }
-
-  .file-upload-area:hover {
-    border-color: rgba(0,255,136,0.4);
-    background: rgba(0,255,136,0.02);
-  }
-
-  .file-upload-area input[type="file"] {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    cursor: pointer;
-    width: 100%;
-    height: 100%;
-  }
-
-  .file-upload-icon { font-size: 1.5rem; margin-bottom: 6px; }
-  .file-upload-text { font-size: 0.8rem; color: var(--muted); }
-  .file-name-preview { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--accent); margin-top: 6px; }
-
-  .modal-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 1.5rem;
-    justify-content: flex-end;
-  }
-
-  .btn {
-    padding: 10px 20px;
-    border-radius: 10px;
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 0.85rem;
-    cursor: pointer;
-    border: none;
-    transition: all 0.2s;
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    color: #000;
-  }
-
-  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-  .btn-ghost {
-    background: transparent;
-    color: var(--muted);
-    border: 1px solid var(--border);
-  }
-
-  .btn-ghost:hover { color: var(--text); border-color: var(--text); }
-
-  /* EMPTY STATE */
-  .empty-state {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: var(--muted);
-    font-size: 0.8rem;
-  }
-
-  .empty-icon { font-size: 2rem; margin-bottom: 8px; opacity: 0.4; }
-
-  /* TOAST */
-  .toast-container {
-    position: fixed;
-    bottom: 6rem;
-    right: 2rem;
-    z-index: 400;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .toast {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 16px;
-    font-size: 0.85rem;
-    animation: toastIn 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-  }
-
-  .toast.success { border-color: rgba(0,255,136,0.3); }
-  .toast.error { border-color: rgba(239,68,68,0.3); }
-
-  @keyframes toastIn {
-    from { opacity: 0; transform: translateX(20px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-
-  /* LOADING */
-  .loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem;
-    color: var(--muted);
-    font-size: 0.85rem;
-    gap: 10px;
-  }
-
-  .spinner {
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* SETUP PANEL */
-  .setup-panel {
-    position: fixed;
-    inset: 0;
-    background: var(--bg);
-    z-index: 500;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-  }
-
-  .setup-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 2.5rem;
-    max-width: 480px;
-    width: 100%;
-    text-align: center;
-  }
-
-  .setup-title {
-    font-size: 1.5rem;
-    font-weight: 800;
-    margin-bottom: 0.5rem;
-  }
-
-  .setup-sub {
-    color: var(--muted);
-    font-size: 0.85rem;
-    margin-bottom: 2rem;
-    line-height: 1.6;
-  }
-
-  .setup-code {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-    text-align: left;
-    color: var(--accent);
-    white-space: pre;
-    overflow-x: auto;
-  }
-
-  @media (max-width: 768px) {
-    .kanban { grid-template-columns: 1fr; }
-    .stats-bar { flex-direction: row; }
-    .stat { padding: 0.75rem 1rem; }
-    .stat-num { font-size: 1.5rem; }
-    .form-row { grid-template-columns: 1fr; }
-  }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f1117;color:#e2e8f0;min-height:100vh}
+:root{
+  --accent:#6c63ff;--accent2:#00d4ff;--green:#22c55e;--yellow:#f59e0b;
+  --red:#ef4444;--surface:#1a1f2e;--surface2:#222840;--border:#2a3150;--muted:#64748b;
+}
+
+/* HEADER */
+header{
+  background:linear-gradient(135deg,#1a1f2e 0%,#0f1117 60%,#1a0f2e 100%);
+  border-bottom:1px solid var(--border);padding:2.5rem 1.5rem 2rem;
+  text-align:center;position:relative;overflow:hidden;
+}
+header::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(108,99,255,.15),transparent);
+  pointer-events:none;
+}
+.header-icon{font-size:2.8rem;margin-bottom:.5rem}
+header h1{
+  font-size:clamp(1.6rem,4vw,2.4rem);font-weight:800;
+  background:linear-gradient(90deg,#fff,var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.4rem;
+}
+header .subtitle{color:var(--muted);font-size:.9rem;margin-bottom:.2rem}
+header .university{color:#a78bfa;font-size:.82rem;font-weight:600}
+.stats-bar{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:1rem;
+  max-width:700px;margin:1.8rem auto 0;
+}
+.stat-pill{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:999px;padding:.55rem 1.4rem;
+  display:flex;align-items:center;gap:.6rem;font-size:.82rem;
+}
+.stat-pill .num{font-weight:800;font-size:1.1rem;color:var(--accent2);min-width:1.5rem;text-align:center}
+.stat-pill .lbl{color:var(--muted)}
+.header-btns{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap;margin-top:1.2rem}
+.btn-hdr{
+  display:inline-flex;align-items:center;gap:.5rem;
+  border:none;border-radius:999px;padding:.65rem 1.6rem;
+  font-size:.82rem;font-weight:700;cursor:pointer;transition:opacity .2s,transform .2s;
+}
+.btn-hdr:hover{opacity:.88;transform:translateY(-1px)}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff}
+.btn-danger {background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.btn-danger:hover{background:rgba(239,68,68,.25)}
+.progress-bar-wrap{max-width:400px;margin:.8rem auto 0;background:var(--border);border-radius:999px;height:6px;overflow:hidden}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:999px;transition:width .5s ease;width:0%}
+.progress-label{text-align:center;font-size:.72rem;color:var(--muted);margin-top:.4rem}
+
+/* STORAGE BANNER */
+.storage-banner{
+  display:none;max-width:700px;margin:.8rem auto 0;
+  background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);
+  border-radius:10px;padding:.6rem 1rem;font-size:.75rem;color:#4ade80;
+  text-align:center;
+}
+.storage-banner.show{display:block}
+
+/* MAIN */
+main{max-width:860px;margin:0 auto;padding:2rem 1.2rem 4rem}
+h2.section-heading{font-size:1.15rem;font-weight:700;color:#a78bfa;margin-bottom:1.2rem;display:flex;align-items:center;gap:.5rem}
+
+/* WEEK CARD */
+.week-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:1.2rem;overflow:hidden;transition:border-color .25s}
+.week-card:hover{border-color:#3b4270}
+.week-header{display:flex;align-items:center;gap:1rem;padding:1rem 1.4rem;background:var(--surface2);border-bottom:1px solid var(--border)}
+.week-num{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0}
+.week-info{flex:1}
+.week-title{font-weight:700;font-size:.95rem}
+.week-subtitle{font-size:.75rem;color:var(--muted);margin-top:.1rem}
+.status-badge{font-size:.68rem;font-weight:700;letter-spacing:.05em;padding:.3rem .75rem;border-radius:999px;flex-shrink:0}
+.status-pending{background:rgba(245,158,11,.12);color:var(--yellow);border:1px solid rgba(245,158,11,.25)}
+.status-done{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.week-body{padding:1.1rem 1.4rem}
+
+/* DROP ZONE */
+.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:1.4rem 1rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:rgba(108,99,255,.05)}
+.drop-zone input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.drop-icon{font-size:1.6rem;margin-bottom:.4rem}
+.drop-text{font-size:.8rem;color:var(--muted)}
+.drop-text strong{color:var(--accent2)}
+
+/* FILE LIST */
+.file-list{margin-top:.9rem;display:flex;flex-direction:column;gap:.6rem}
+.file-item{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:.75rem 1rem;display:flex;align-items:center;gap:.9rem}
+.file-type-icon{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+.ft-pdf{background:rgba(239,68,68,.13);color:#f87171}
+.ft-img{background:rgba(34,197,94,.13);color:#4ade80}
+.ft-code{background:rgba(0,212,255,.13);color:var(--accent2)}
+.ft-word{background:rgba(59,130,246,.13);color:#60a5fa}
+.ft-zip{background:rgba(245,158,11,.13);color:var(--yellow)}
+.ft-default{background:rgba(108,99,255,.13);color:#a78bfa}
+.file-info{flex:1;min-width:0}
+.file-name{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-meta{font-size:.7rem;color:var(--muted);margin-top:.15rem}
+.file-actions{display:flex;gap:.4rem;flex-shrink:0}
+.btn-icon{width:32px;height:32px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:all .18s}
+.btn-icon:hover{border-color:var(--accent2);color:var(--accent2);background:rgba(0,212,255,.07)}
+.btn-icon.del:hover{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.07)}
+
+/* STORAGE WARNING - when file too large */
+.warn-strip{display:none;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:.6rem 1rem;font-size:.75rem;color:var(--yellow);margin-top:.5rem}
+.warn-strip.show{display:block}
+
+/* VIEWER MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.active{display:flex}
+.viewer-modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:940px;height:90vh;display:flex;flex-direction:column;overflow:hidden;animation:popIn .25s ease}
+@keyframes popIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+.viewer-header{display:flex;align-items:center;gap:.8rem;padding:1rem 1.4rem;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface2)}
+.vicon{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.viewer-title{flex:1;font-weight:700;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.viewer-actions{display:flex;gap:.5rem}
+.btn-sm{padding:.4rem .9rem;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:.75rem;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:.3rem;white-space:nowrap}
+.btn-sm:hover{border-color:var(--accent2);color:var(--accent2)}
+.btn-close{width:32px;height:32px;border-radius:7px;border:none;background:rgba(239,68,68,.12);color:#f87171;font-size:1rem;cursor:pointer;transition:background .18s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.btn-close:hover{background:rgba(239,68,68,.28)}
+.viewer-body{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.viewer-body iframe{width:100%;height:100%;border:none;background:#fff}
+.img-viewer{flex:1;display:flex;align-items:center;justify-content:center;padding:1.5rem;background:#080c14;overflow:auto}
+.img-viewer img{max-width:100%;max-height:100%;border-radius:8px;object-fit:contain}
+.code-viewer{flex:1;overflow:auto;background:#060a12;font-family:'Courier New',Courier,monospace;font-size:.82rem;color:#a8d8ea;line-height:1.7;padding:1.5rem}
+.code-viewer pre{white-space:pre-wrap;word-break:break-word}
+.no-preview{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;color:var(--muted);padding:2rem;text-align:center}
+.no-preview .big-icon{font-size:3.5rem}
+.no-preview p{font-size:.88rem;max-width:340px;line-height:1.6}
+
+/* CONFIRM MODAL */
+.confirm-modal{background:var(--surface2);border:1px solid var(--border);border-radius:14px;width:100%;max-width:380px;padding:2rem;text-align:center;animation:popIn .2s ease}
+.confirm-modal h3{font-size:1rem;margin-bottom:.6rem}
+.confirm-modal p{font-size:.82rem;color:var(--muted);margin-bottom:1.4rem;line-height:1.5}
+.confirm-actions{display:flex;gap:.8rem;justify-content:center}
+
+footer{text-align:center;padding:2rem;border-top:1px solid var(--border);font-size:.78rem;color:var(--muted)}
+footer strong{color:#a78bfa}
 </style>
 </head>
 <body>
 
-<!-- SETUP PANEL -->
-<div class="setup-panel" id="setupPanel" style="display:none">
-  <div class="setup-card">
-    <div class="logo" style="justify-content:center;margin-bottom:1rem">
-      <div class="logo-dot"></div>
-      DevTasks
-    </div>
-    <h2 class="setup-title">Configurar Base de Datos</h2>
-    <p class="setup-sub">Antes de usar la app, crea la tabla en Supabase ejecutando este SQL en el <strong>SQL Editor</strong> de tu proyecto:</p>
-    <div class="setup-code" id="sqlCode"></div>
-    <p style="font-size:0.8rem;color:var(--muted);margin-bottom:1.5rem">Una vez ejecutado el SQL, haz clic en continuar.</p>
-    <button class="btn btn-primary" onclick="closeSetup()" style="width:100%">✓ Ya ejecuté el SQL — Continuar</button>
-  </div>
-</div>
-
-<!-- HEADER -->
 <header>
-  <div class="logo">
-    <div class="logo-dot"></div>
-    DevTasks
+  <div class="header-icon">📚</div>
+  <h1>Felipe Mamani Choque</h1>
+  <p class="subtitle">Ingeniería Electrónica &nbsp;·&nbsp; Cód. 251331</p>
+  <p class="university">Lenguajes de Programación — Universidad Nacional del Altiplano</p>
+
+  <div class="stats-bar">
+    <div class="stat-pill"><span class="num" id="completed-count">0</span><span class="lbl">Semanas Completadas</span></div>
+    <div class="stat-pill"><span class="num">7</span><span class="lbl">Total de Semanas</span></div>
+    <div class="stat-pill"><span class="num" id="files-count">0</span><span class="lbl">Archivos Guardados</span></div>
+    <div class="stat-pill"><span class="num" id="pct-count">0%</span><span class="lbl">Progreso</span></div>
   </div>
-  <div class="header-right">
-    <div class="status-indicator" id="statusIndicator">● conectando...</div>
+  <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+  <div class="progress-label" id="progress-label">0 de 7 semanas completadas</div>
+
+  <div class="header-btns">
+    <button class="btn-hdr btn-primary" onclick="downloadAll()">📥 Descargar Todos</button>
+    <button class="btn-hdr btn-danger"  onclick="confirmClearAll()">🗑 Borrar Todo</button>
+  </div>
+
+  <div class="storage-banner" id="storage-banner">
+    ✅ Archivos guardados en el navegador — se mantienen al recargar la página
   </div>
 </header>
 
-<!-- STATS BAR -->
-<div class="stats-bar">
-  <div class="stat">
-    <div class="stat-num blue" id="statTodo">0</div>
-    <div class="stat-label">Por hacer</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num amber" id="statDoing">0</div>
-    <div class="stat-label">En progreso</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num green" id="statDone">0</div>
-    <div class="stat-label">Completadas</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num" id="statTotal">0</div>
-    <div class="stat-label">Total</div>
+<main>
+  <h2 class="section-heading">📋 Tareas por Semana</h2>
+  <div id="weeks-container"></div>
+</main>
+
+<footer>
+  <strong>© 2026 Felipe Mamani Choque</strong><br>
+  Ingeniería Electrónica &nbsp;·&nbsp; Universidad Nacional del Altiplano &nbsp;·&nbsp; Lenguajes de Programación
+</footer>
+
+<!-- VIEWER MODAL -->
+<div class="modal-overlay" id="viewer-modal">
+  <div class="viewer-modal">
+    <div class="viewer-header">
+      <div class="vicon file-type-icon" id="vm-icon">📄</div>
+      <div class="viewer-title" id="vm-title">Archivo</div>
+      <div class="viewer-actions">
+        <button class="btn-sm" onclick="downloadCurrentFile()">⬇ Descargar</button>
+        <button class="btn-sm" onclick="openCurrentFileNewTab()">↗ Nueva pestaña</button>
+      </div>
+      <button class="btn-close" onclick="closeViewer()">✕</button>
+    </div>
+    <div class="viewer-body" id="vm-body"></div>
   </div>
 </div>
 
-<!-- KANBAN BOARD -->
-<div class="kanban">
-  <!-- Por Hacer -->
-  <div class="column">
-    <div class="column-header">
-      <div class="column-title">
-        <div class="col-dot blue"></div>
-        Por Hacer
-      </div>
-      <span class="col-count" id="countTodo">0</span>
-    </div>
-    <div class="column-body" id="col-todo">
-      <div class="loading"><div class="spinner"></div> cargando...</div>
-    </div>
-  </div>
-
-  <!-- En Progreso -->
-  <div class="column">
-    <div class="column-header">
-      <div class="column-title">
-        <div class="col-dot amber"></div>
-        En Progreso
-      </div>
-      <span class="col-count" id="countDoing">0</span>
-    </div>
-    <div class="column-body" id="col-doing">
-      <div class="loading"><div class="spinner"></div> cargando...</div>
-    </div>
-  </div>
-
-  <!-- Hecho -->
-  <div class="column">
-    <div class="column-header">
-      <div class="column-title">
-        <div class="col-dot green"></div>
-        Completado
-      </div>
-      <span class="col-count" id="countDone">0</span>
-    </div>
-    <div class="column-body" id="col-done">
-      <div class="loading"><div class="spinner"></div> cargando...</div>
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="confirm-modal">
+    <h3 id="confirm-title">¿Confirmar acción?</h3>
+    <p id="confirm-msg">Esta acción no se puede deshacer.</p>
+    <div class="confirm-actions">
+      <button class="btn-sm" onclick="closeConfirm()">Cancelar</button>
+      <button class="btn-sm" id="confirm-ok-btn" style="border-color:var(--red);color:#f87171">Confirmar</button>
     </div>
   </div>
 </div>
-
-<!-- FAB -->
-<button class="fab" onclick="openModal()" title="Nueva tarea">+</button>
-
-<!-- MODAL -->
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <div class="modal-title">
-      <span>+</span> Nueva Tarea
-    </div>
-    <div class="form-group">
-      <label>Título *</label>
-      <input type="text" id="inputTitle" placeholder="ej. Implementar autenticación JWT" />
-    </div>
-    <div class="form-group">
-      <label>Descripción</label>
-      <textarea id="inputDesc" placeholder="Detalles de la tarea..."></textarea>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Prioridad</label>
-        <select id="inputPriority">
-          <option value="alta">🔴 Alta</option>
-          <option value="media" selected>🟡 Media</option>
-          <option value="baja">🔵 Baja</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Estado</label>
-        <select id="inputStatus">
-          <option value="todo" selected>Por Hacer</option>
-          <option value="doing">En Progreso</option>
-          <option value="done">Completado</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-group">
-      <label>Etiqueta / Tecnología</label>
-      <input type="text" id="inputTag" placeholder="ej. React, Node.js, Python..." />
-    </div>
-    <div class="form-group">
-      <label>Fecha límite</label>
-      <input type="date" id="inputDate" />
-    </div>
-    <div class="form-group">
-      <label>Archivo adjunto</label>
-      <div class="file-upload-area">
-        <input type="file" id="inputFile" onchange="previewFile(this)" />
-        <div class="file-upload-icon">📎</div>
-        <div class="file-upload-text">Arrastra o haz clic para subir</div>
-        <div class="file-name-preview" id="filePreview"></div>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" id="btnSave" onclick="saveTask()">Guardar Tarea</button>
-    </div>
-  </div>
-</div>
-
-<!-- TOAST CONTAINER -->
-<div class="toast-container" id="toastContainer"></div>
 
 <script>
-const SUPABASE_URL = 'https://ymhamwvrmcjnrqbxvzbf.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltaGFtd3ZybWNqbnJxYnh2emJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NzU5MTcsImV4cCI6MjA4ODE1MTkxN30.XMntw423kUSbEMu4n-LTI8-_LZn2hIEaqXrlQsGLVqs';
-const BUCKET = 'tareas';
+// ═══════════════════════════════════════════════════
+//  CONFIGURACIÓN
+// ═══════════════════════════════════════════════════
+const WEEKS = [
+  {id:1, title:'Semana 1', subtitle:'Introducción al Curso'},
+  {id:2, title:'Semana 2', subtitle:'Estructuras de Control'},
+  {id:3, title:'Semana 3', subtitle:'Funciones y Procedimientos'},
+  {id:4, title:'Semana 4', subtitle:'Arrays y Cadenas'},
+  {id:5, title:'Semana 5', subtitle:'Punteros y Referencias'},
+  {id:6, title:'Semana 6', subtitle:'Estructuras de Datos'},
+  {id:7, title:'Semana 7', subtitle:'Proyecto Final'},
+];
 
-const SQL = `-- Ejecuta esto en el SQL Editor de Supabase
-create table if not exists tareas (
-  id uuid default gen_random_uuid() primary key,
-  titulo text not null,
-  descripcion text,
-  prioridad text default 'media',
-  estado text default 'todo',
-  etiqueta text,
-  fecha_limite date,
-  archivo_url text,
-  archivo_nombre text,
-  created_at timestamptz default now()
-);
+// Límite por archivo para localStorage (4 MB en base64)
+const MAX_SIZE_BYTES = 4 * 1024 * 1024;
+const LS_KEY = 'felipo_tareas_v2';
 
--- Habilitar RLS (Row Level Security) como público
-alter table tareas enable row level security;
-create policy "public access" on tareas for all using (true);`;
+// weekFiles[id] = [ { name, size, type, dataUrl, mimeType }, ... ]
+const weekFiles = {};
+WEEKS.forEach(w => weekFiles[w.id] = []);
 
-document.getElementById('sqlCode').textContent = SQL;
+// ObjectURLs temporales para descarga/vista (se regeneran en memoria)
+const blobUrls = {};  // blobUrls[weekId][idx] = url
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let currentFile = null;
+let confirmCallback = null;
 
-let allTasks = [];
-
-// INIT
-async function init() {
+// ═══════════════════════════════════════════════════
+//  PERSISTENCIA — localStorage con base64
+// ═══════════════════════════════════════════════════
+function saveToStorage() {
   try {
-    const { data, error } = await supabase.from('tareas').select('*').order('created_at', { ascending: false });
-    if (error) {
-      if (error.message.includes('does not exist') || error.code === '42P01') {
-        showSetup();
-      } else {
-        setStatus('error');
-        toast('Error al conectar con Supabase', 'error');
+    const data = {};
+    WEEKS.forEach(w => {
+      // Solo guardamos metadata + dataUrl (base64); no guardamos blobUrl
+      data[w.id] = weekFiles[w.id].map(f => ({
+        name:     f.name,
+        size:     f.size,
+        type:     f.type,
+        mimeType: f.mimeType,
+        dataUrl:  f.dataUrl,   // base64 data URL
+      }));
+    });
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+    showStorageBanner();
+  } catch(e) {
+    // localStorage lleno — avisar al usuario
+    console.warn('localStorage lleno:', e);
+    alert('⚠️ El almacenamiento del navegador está lleno. Algunos archivos muy grandes no se pueden guardar. Borra archivos que ya no necesites.');
+  }
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    WEEKS.forEach(w => {
+      if (data[w.id]) {
+        weekFiles[w.id] = data[w.id];
+        // Inicializar blobUrls vacíos
+        blobUrls[w.id] = new Array(data[w.id].length).fill(null);
       }
+    });
+  } catch(e) {
+    console.warn('Error al cargar datos:', e);
+  }
+}
+
+function getBlobUrl(wid, idx) {
+  if (!blobUrls[wid]) blobUrls[wid] = [];
+  if (!blobUrls[wid][idx]) {
+    const f = weekFiles[wid][idx];
+    // Reconstruir Blob desde base64 dataUrl
+    const byteStr = atob(f.dataUrl.split(',')[1]);
+    const ab = new ArrayBuffer(byteStr.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteStr.length; i++) ia[i] = byteStr.charCodeAt(i);
+    const blob = new Blob([ab], {type: f.mimeType});
+    blobUrls[wid][idx] = URL.createObjectURL(blob);
+  }
+  return blobUrls[wid][idx];
+}
+
+function showStorageBanner() {
+  document.getElementById('storage-banner').classList.add('show');
+  setTimeout(() => document.getElementById('storage-banner').classList.remove('show'), 3500);
+}
+
+// ═══════════════════════════════════════════════════
+//  TIPOS DE ARCHIVO
+// ═══════════════════════════════════════════════════
+function getType(name, mime) {
+  const ext = name.split('.').pop().toLowerCase();
+  if ((mime||'').startsWith('image/') || ['jpg','jpeg','png','gif','webp','svg','bmp'].includes(ext)) return 'img';
+  if (mime==='application/pdf' || ext==='pdf')   return 'pdf';
+  if (['doc','docx'].includes(ext) || (mime||'').includes('word')) return 'word';
+  if (['zip','rar','7z','tar','gz'].includes(ext)) return 'zip';
+  if (['c','cpp','h','py','js','ts','html','css','java','cs','php','rb','go','rs',
+       'txt','md','json','xml','csv','sh','bat','sql'].includes(ext)) return 'code';
+  return 'default';
+}
+const ICONS = {pdf:'📕',img:'🖼️',word:'📘',code:'💻',zip:'📦',default:'📄'};
+const CLSS  = {pdf:'ft-pdf',img:'ft-img',word:'ft-word',code:'ft-code',zip:'ft-zip',default:'ft-default'};
+const icon  = t => ICONS[t]||'📄';
+const cls   = t => CLSS[t] ||'ft-default';
+const fmtSz = b => b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB';
+
+// ═══════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════
+function renderAll() {
+  const c = document.getElementById('weeks-container');
+  c.innerHTML = '';
+  WEEKS.forEach(w => c.appendChild(buildCard(w)));
+  updateStats();
+}
+
+function buildCard(w) {
+  const card = document.createElement('div');
+  card.className = 'week-card';
+  card.id = 'week-' + w.id;
+  card.innerHTML = `
+    <div class="week-header">
+      <div class="week-num">${w.id}</div>
+      <div class="week-info">
+        <div class="week-title">${w.title}</div>
+        <div class="week-subtitle">${w.subtitle}</div>
+      </div>
+      <span class="status-badge status-pending" id="badge-${w.id}">⏳ Pendiente</span>
+    </div>
+    <div class="week-body">
+      <label class="drop-zone" id="dz-${w.id}">
+        <input type="file" multiple accept="*/*" onchange="handleFiles(${w.id}, this.files)">
+        <div class="drop-icon">📁</div>
+        <div class="drop-text">
+          <strong>Haz clic para seleccionar</strong> o arrastra archivos aquí<br>
+          PDF, Word, Imágenes, Código (máx. ${fmtSz(MAX_SIZE_BYTES)} por archivo)
+        </div>
+      </label>
+      <div class="warn-strip" id="warn-${w.id}"></div>
+      <div class="file-list" id="list-${w.id}"></div>
+    </div>`;
+
+  const dz = card.querySelector('.drop-zone');
+  dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag-over');
+    handleFiles(w.id, e.dataTransfer.files);
+  });
+  return card;
+}
+
+// ═══════════════════════════════════════════════════
+//  MANEJO DE ARCHIVOS
+// ═══════════════════════════════════════════════════
+function handleFiles(wid, fileList) {
+  const oversized = [];
+  let processed = 0;
+  const total = fileList.length;
+
+  Array.from(fileList).forEach(file => {
+    if (file.size > MAX_SIZE_BYTES) {
+      oversized.push(file.name);
+      processed++;
+      if (processed === total) finishHandling(wid, oversized);
       return;
     }
-    allTasks = data || [];
-    setStatus('online');
-    render();
-  } catch (e) {
-    setStatus('error');
-    showSetup();
-  }
-}
+    // Duplicados
+    if (weekFiles[wid].find(x => x.name === file.name && x.size === file.size)) {
+      processed++;
+      if (processed === total) finishHandling(wid, oversized);
+      return;
+    }
 
-function showSetup() {
-  document.getElementById('setupPanel').style.display = 'flex';
-}
-
-function closeSetup() {
-  document.getElementById('setupPanel').style.display = 'none';
-  init();
-}
-
-function setStatus(s) {
-  const el = document.getElementById('statusIndicator');
-  if (s === 'online') { el.textContent = '● conectado'; el.style.color = 'var(--accent)'; }
-  else if (s === 'error') { el.textContent = '● error'; el.style.color = 'var(--danger)'; }
-  else { el.textContent = '● conectando...'; el.style.color = 'var(--muted)'; }
-}
-
-function render() {
-  const cols = { todo: [], doing: [], done: [] };
-  allTasks.forEach(t => {
-    if (cols[t.estado]) cols[t.estado].push(t);
-    else cols.todo.push(t);
+    // Leer como base64 para guardar en localStorage
+    const reader = new FileReader();
+    reader.onload = e => {
+      weekFiles[wid].push({
+        name:     file.name,
+        size:     file.size,
+        type:     getType(file.name, file.type),
+        mimeType: file.type || 'application/octet-stream',
+        dataUrl:  e.target.result,  // base64 data URL
+      });
+      if (!blobUrls[wid]) blobUrls[wid] = [];
+      blobUrls[wid].push(null); // se generará bajo demanda
+      processed++;
+      if (processed === total) finishHandling(wid, oversized);
+    };
+    reader.onerror = () => { processed++; if (processed===total) finishHandling(wid, oversized); };
+    reader.readAsDataURL(file);
   });
-
-  document.getElementById('col-todo').innerHTML = renderCol(cols.todo);
-  document.getElementById('col-doing').innerHTML = renderCol(cols.doing);
-  document.getElementById('col-done').innerHTML = renderCol(cols.done);
-
-  document.getElementById('countTodo').textContent = cols.todo.length;
-  document.getElementById('countDoing').textContent = cols.doing.length;
-  document.getElementById('countDone').textContent = cols.done.length;
-
-  document.getElementById('statTodo').textContent = cols.todo.length;
-  document.getElementById('statDoing').textContent = cols.doing.length;
-  document.getElementById('statDone').textContent = cols.done.length;
-  document.getElementById('statTotal').textContent = allTasks.length;
 }
 
-function renderCol(tasks) {
-  if (!tasks.length) return `<div class="empty-state"><div class="empty-icon">◇</div>Sin tareas</div>`;
-  return tasks.map(t => renderCard(t)).join('');
+function finishHandling(wid, oversized) {
+  const warn = document.getElementById('warn-' + wid);
+  if (oversized.length) {
+    warn.textContent = `⚠️ ${oversized.length} archivo(s) omitido(s) por superar ${fmtSz(MAX_SIZE_BYTES)}: ${oversized.join(', ')}`;
+    warn.classList.add('show');
+    setTimeout(() => warn.classList.remove('show'), 6000);
+  }
+  refreshWeek(wid);
+  saveToStorage();
+  updateStats();
 }
 
-function renderCard(t) {
-  const dateStr = t.fecha_limite ? `<span class="task-date">${formatDate(t.fecha_limite)}</span>` : '';
-  const tag = t.etiqueta ? `<span class="tag">${t.etiqueta}</span>` : '';
-  const priority = `<span class="priority-badge ${t.prioridad}">${t.prioridad}</span>`;
-  const file = t.archivo_url ? `<a class="task-file" href="${t.archivo_url}" target="_blank">📎 ${t.archivo_nombre || 'archivo'}</a>` : '';
-
-  const nextStatus = { todo: 'doing', doing: 'done', done: 'todo' };
-  const nextLabel = { todo: '▶', doing: '✓', done: '↺' };
-  const nextTitle = { todo: 'Iniciar', doing: 'Completar', done: 'Reiniciar' };
-
-  return `
-  <div class="task-card priority-${t.prioridad}" onclick="editTask('${t.id}')">
-    <div class="task-title">${escHtml(t.titulo)}</div>
-    ${t.descripcion ? `<div style="font-size:0.8rem;color:var(--muted);margin-bottom:8px;line-height:1.5">${escHtml(t.descripcion)}</div>` : ''}
-    <div class="task-meta">
-      ${priority}
-      ${tag}
-      ${dateStr}
-    </div>
-    ${file}
-    <div class="task-actions" onclick="event.stopPropagation()">
-      <button class="btn-icon" title="${nextTitle[t.estado]}" onclick="moveTask('${t.id}','${nextStatus[t.estado]}')">${nextLabel[t.estado]}</button>
-      <button class="btn-icon danger" title="Eliminar" onclick="deleteTask('${t.id}')">✕</button>
-    </div>
-  </div>`;
+function deleteFile(wid, idx) {
+  // Liberar blob URL si existe
+  if (blobUrls[wid] && blobUrls[wid][idx]) {
+    URL.revokeObjectURL(blobUrls[wid][idx]);
+  }
+  weekFiles[wid].splice(idx, 1);
+  if (blobUrls[wid]) blobUrls[wid].splice(idx, 1);
+  refreshWeek(wid);
+  saveToStorage();
+  updateStats();
 }
 
-function formatDate(d) {
-  const date = new Date(d + 'T00:00:00');
-  return date.toLocaleDateString('es', { day: '2-digit', month: 'short' });
+function refreshWeek(wid) {
+  const files = weekFiles[wid];
+  const done  = files.length > 0;
+
+  const badge = document.getElementById('badge-' + wid);
+  badge.className = 'status-badge ' + (done ? 'status-done' : 'status-pending');
+  badge.textContent = done ? '✅ Entregado' : '⏳ Pendiente';
+
+  const list = document.getElementById('list-' + wid);
+  list.innerHTML = '';
+  files.forEach((f, i) => {
+    const item = document.createElement('div');
+    item.className = 'file-item';
+    item.innerHTML = `
+      <div class="file-type-icon ${cls(f.type)}">${icon(f.type)}</div>
+      <div class="file-info">
+        <div class="file-name" title="${escHtml(f.name)}">${escHtml(f.name)}</div>
+        <div class="file-meta">${fmtSz(f.size)} · ${f.type.toUpperCase()} · 💾 Guardado</div>
+      </div>
+      <div class="file-actions">
+        <button class="btn-icon" title="Ver"        onclick="openViewer(${wid},${i})">👁</button>
+        <button class="btn-icon" title="Descargar"  onclick="dlFile(${wid},${i})">⬇</button>
+        <button class="btn-icon del" title="Eliminar" onclick="deleteFile(${wid},${i})">🗑</button>
+      </div>`;
+    list.appendChild(item);
+  });
 }
 
-function escHtml(str) {
-  if (!str) return '';
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+// ═══════════════════════════════════════════════════
+//  VISOR
+// ═══════════════════════════════════════════════════
+function openViewer(wid, idx) {
+  const f = weekFiles[wid][idx];
+  currentFile = { ...f, wid, idx };
 
-// MODAL
-function openModal(task = null) {
-  document.getElementById('inputTitle').value = task?.titulo || '';
-  document.getElementById('inputDesc').value = task?.descripcion || '';
-  document.getElementById('inputPriority').value = task?.prioridad || 'media';
-  document.getElementById('inputStatus').value = task?.estado || 'todo';
-  document.getElementById('inputTag').value = task?.etiqueta || '';
-  document.getElementById('inputDate').value = task?.fecha_limite || '';
-  document.getElementById('filePreview').textContent = task?.archivo_nombre || '';
-  document.getElementById('inputFile').value = '';
-  document.getElementById('btnSave').dataset.editId = task?.id || '';
-  document.getElementById('modalOverlay').classList.add('open');
-}
+  document.getElementById('vm-title').textContent = f.name;
+  const ic = document.getElementById('vm-icon');
+  ic.className = 'vicon file-type-icon ' + cls(f.type);
+  ic.textContent = icon(f.type);
 
-function closeModal() {
-  document.getElementById('modalOverlay').classList.remove('open');
-}
+  const body = document.getElementById('vm-body');
+  body.innerHTML = '';
 
-function editTask(id) {
-  const task = allTasks.find(t => t.id === id);
-  if (task) openModal(task);
-}
+  const url = getBlobUrl(wid, idx);
 
-function previewFile(input) {
-  const f = input.files[0];
-  document.getElementById('filePreview').textContent = f ? f.name : '';
-}
+  if (f.type === 'pdf') {
+    const iframe = document.createElement('iframe');
+    iframe.src   = url + '#toolbar=1&navpanes=1';
+    iframe.title = f.name;
+    iframe.style.cssText = 'width:100%;height:100%;border:none;background:#fff';
+    body.appendChild(iframe);
 
-async function saveTask() {
-  const title = document.getElementById('inputTitle').value.trim();
-  if (!title) { toast('El título es obligatorio', 'error'); return; }
+  } else if (f.type === 'img') {
+    body.innerHTML = `<div class="img-viewer"><img src="${url}" alt="${escHtml(f.name)}"></div>`;
 
-  const btn = document.getElementById('btnSave');
-  btn.disabled = true;
-  btn.textContent = 'Guardando...';
+  } else if (f.type === 'code') {
+    // Leer texto desde dataUrl base64
+    try {
+      const text = decodeURIComponent(escape(atob(f.dataUrl.split(',')[1])));
+      body.innerHTML = `<div class="code-viewer"><pre>${escHtml(text)}</pre></div>`;
+    } catch(e) {
+      // Fallback para UTF-8 multi-byte
+      const byteStr = atob(f.dataUrl.split(',')[1]);
+      body.innerHTML = `<div class="code-viewer"><pre>${escHtml(byteStr)}</pre></div>`;
+    }
 
-  const editId = btn.dataset.editId;
-  const file = document.getElementById('inputFile').files[0];
-  let archivo_url = null, archivo_nombre = null;
+  } else if (f.type === 'word') {
+    body.innerHTML = `
+      <div class="no-preview">
+        <div class="big-icon">📘</div>
+        <p><strong>${escHtml(f.name)}</strong></p>
+        <p>Los archivos Word no se pueden previsualizar en el navegador.<br>
+           Usa <strong>Descargar</strong> para abrirlo en tu equipo.</p>
+      </div>`;
 
-  if (file) {
-    const ext = file.name.split('.').pop();
-    const path = `${Date.now()}.${ext}`;
-    const { data: upData, error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true });
-    if (!upErr) {
-      const { data: pubData } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      archivo_url = pubData.publicUrl;
-      archivo_nombre = file.name;
-    } else {
-      toast('No se pudo subir el archivo (¿bucket "tareas" creado?)', 'error');
+  } else if (f.type === 'zip') {
+    body.innerHTML = `
+      <div class="no-preview">
+        <div class="big-icon">📦</div>
+        <p><strong>${escHtml(f.name)}</strong></p>
+        <p>Los archivos comprimidos no tienen previsualización. Descárgalos para abrirlos.</p>
+      </div>`;
+
+  } else {
+    // Intentar como texto
+    try {
+      const text = decodeURIComponent(escape(atob(f.dataUrl.split(',')[1])));
+      body.innerHTML = `<div class="code-viewer"><pre>${escHtml(text)}</pre></div>`;
+    } catch(e) {
+      body.innerHTML = `
+        <div class="no-preview">
+          <div class="big-icon">📄</div>
+          <p><strong>${escHtml(f.name)}</strong></p>
+          <p>No se puede previsualizar este tipo de archivo. Descárgalo para abrirlo.</p>
+        </div>`;
     }
   }
 
-  const payload = {
-    titulo: title,
-    descripcion: document.getElementById('inputDesc').value.trim() || null,
-    prioridad: document.getElementById('inputPriority').value,
-    estado: document.getElementById('inputStatus').value,
-    etiqueta: document.getElementById('inputTag').value.trim() || null,
-    fecha_limite: document.getElementById('inputDate').value || null,
+  document.getElementById('viewer-modal').classList.add('active');
+}
+
+function closeViewer() {
+  document.getElementById('viewer-modal').classList.remove('active');
+  document.getElementById('vm-body').innerHTML = '';
+  currentFile = null;
+}
+document.getElementById('viewer-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('viewer-modal')) closeViewer();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeViewer(); closeConfirm(); } });
+
+function openCurrentFileNewTab() {
+  if (currentFile) window.open(getBlobUrl(currentFile.wid, currentFile.idx), '_blank');
+}
+function downloadCurrentFile() {
+  if (currentFile) triggerDl(getBlobUrl(currentFile.wid, currentFile.idx), currentFile.name);
+}
+
+// ═══════════════════════════════════════════════════
+//  DESCARGAS
+// ═══════════════════════════════════════════════════
+function dlFile(wid, idx) {
+  triggerDl(getBlobUrl(wid, idx), weekFiles[wid][idx].name);
+}
+function triggerDl(url, name) {
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+function downloadAll() {
+  let n = 0;
+  WEEKS.forEach(w => weekFiles[w.id].forEach((f, i) => {
+    setTimeout(() => triggerDl(getBlobUrl(w.id, i), f.name), n++ * 350);
+  }));
+  if (!n) alert('No hay archivos guardados todavía.');
+}
+
+// ═══════════════════════════════════════════════════
+//  BORRAR TODO
+// ═══════════════════════════════════════════════════
+function confirmClearAll() {
+  showConfirm(
+    '¿Borrar todos los archivos?',
+    'Se eliminarán todos los archivos de todas las semanas. Esta acción no se puede deshacer.',
+    () => {
+      WEEKS.forEach(w => {
+        if (blobUrls[w.id]) blobUrls[w.id].forEach(u => u && URL.revokeObjectURL(u));
+        weekFiles[w.id] = [];
+        blobUrls[w.id]  = [];
+      });
+      localStorage.removeItem(LS_KEY);
+      renderAll();
+    }
+  );
+}
+
+// ═══════════════════════════════════════════════════
+//  CONFIRM MODAL
+// ═══════════════════════════════════════════════════
+function showConfirm(title, msg, cb) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent   = msg;
+  confirmCallback = cb;
+  document.getElementById('confirm-modal').classList.add('active');
+  document.getElementById('confirm-ok-btn').onclick = () => {
+    closeConfirm(); if (confirmCallback) confirmCallback();
   };
-
-  if (archivo_url) { payload.archivo_url = archivo_url; payload.archivo_nombre = archivo_nombre; }
-
-  let error;
-  if (editId) {
-    const res = await supabase.from('tareas').update(payload).eq('id', editId);
-    error = res.error;
-    if (!error) {
-      allTasks = allTasks.map(t => t.id === editId ? { ...t, ...payload, ...(archivo_url ? { archivo_url, archivo_nombre } : {}) } : t);
-    }
-  } else {
-    const res = await supabase.from('tareas').insert(payload).select().single();
-    error = res.error;
-    if (!error && res.data) allTasks.unshift(res.data);
-  }
-
-  btn.disabled = false;
-  btn.textContent = 'Guardar Tarea';
-
-  if (error) {
-    toast('Error al guardar: ' + error.message, 'error');
-  } else {
-    toast(editId ? 'Tarea actualizada ✓' : 'Tarea creada ✓', 'success');
-    closeModal();
-    render();
-  }
+}
+function closeConfirm() {
+  document.getElementById('confirm-modal').classList.remove('active');
+  confirmCallback = null;
 }
 
-async function moveTask(id, newStatus) {
-  const { error } = await supabase.from('tareas').update({ estado: newStatus }).eq('id', id);
-  if (!error) {
-    allTasks = allTasks.map(t => t.id === id ? { ...t, estado: newStatus } : t);
-    render();
-    toast('Tarea movida ✓', 'success');
-  }
+// ═══════════════════════════════════════════════════
+//  ESTADÍSTICAS
+// ═══════════════════════════════════════════════════
+function updateStats() {
+  let completed = 0, total = 0;
+  WEEKS.forEach(w => { const n = weekFiles[w.id].length; total += n; if (n > 0) completed++; });
+  const pct = Math.round(completed / WEEKS.length * 100);
+  document.getElementById('completed-count').textContent = completed;
+  document.getElementById('files-count').textContent     = total;
+  document.getElementById('pct-count').textContent       = pct + '%';
+  document.getElementById('progress-bar').style.width    = pct + '%';
+  document.getElementById('progress-label').textContent  = `${completed} de ${WEEKS.length} semanas completadas`;
 }
 
-async function deleteTask(id) {
-  if (!confirm('¿Eliminar esta tarea?')) return;
-  const { error } = await supabase.from('tareas').delete().eq('id', id);
-  if (!error) {
-    allTasks = allTasks.filter(t => t.id !== id);
-    render();
-    toast('Tarea eliminada', 'success');
-  }
+// ═══════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// TOAST
-function toast(msg, type = 'success') {
-  const c = document.getElementById('toastContainer');
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.innerHTML = `<span>${type === 'success' ? '✓' : '✕'}</span> ${msg}`;
-  c.appendChild(el);
-  setTimeout(() => el.remove(), 3500);
-}
-
-// Close modal on overlay click
-document.getElementById('modalOverlay').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
-});
-
-// Keyboard shortcut
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeModal();
-  if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); openModal(); }
-});
-
-init();
+// ═══════════════════════════════════════════════════
+//  INICIO
+// ═══════════════════════════════════════════════════
+loadFromStorage();   // ← cargar datos guardados
+renderAll();         // ← construir la UI
+// Refrescar listas con datos cargados
+WEEKS.forEach(w => { if (weekFiles[w.id].length) refreshWeek(w.id); });
 </script>
 </body>
 </html>
